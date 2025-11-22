@@ -1,0 +1,18 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "app/(tabs)/index.js",
+    "app/(tabs)/alerts.js",
+    "app/(tabs)/_layout.js"
+, "components/hello-wave.js", "components/parallax-scroll-view.js", "components/themed-text.js", "components/themed-view.js", "constants/theme.js", "hooks/use-color-scheme.js", "hooks/use-color-scheme.web.js", "hooks/use-theme-color.js"  ]
+}
