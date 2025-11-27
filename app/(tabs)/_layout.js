@@ -1,7 +1,26 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { TouchableOpacity, Alert } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 
 export default function TabLayout() {
+  const { logout, user } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: logout,
+        },
+      ]
+    );
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -13,6 +32,14 @@ export default function TabLayout() {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={{ marginRight: 16 }}
+          >
+            <Ionicons name="log-out" size={24} color="#FF6B6B" />
+          </TouchableOpacity>
+        ),
       }}>
       <Tabs.Screen
         name="index"
