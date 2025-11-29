@@ -18,7 +18,7 @@ import LoginScreen from './components/LoginScreen';
 import SignupScreen from './components/SignupScreen';
 
 // Services
-import { initDatabase } from './database/database.js';
+import initDatabase from './database/initDatabase.js';
 import { setupNotifications } from './services/notificationService';
 
 const Tab = createBottomTabNavigator();

@@ -1,4 +1,4 @@
-import db from './database';
+import db from './supabase';
 
 export const initDatabase = () => {
   return new Promise((resolve, reject) => {
