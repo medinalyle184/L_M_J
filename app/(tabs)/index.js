@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -158,14 +158,42 @@ export default function DashboardScreen() {
     setRefreshing(false);
   };
 
+  const saveAlertToSupabase = async (alertData) => {
+    try {
+      const { data, error } = await supabase
+        .from('alerts')
+        .insert([{
+          user_id: userId,
+          type: alertData.type,
+          message: alertData.message,
+          room_name: alertData.room_name,
+          value: alertData.value,
+          threshold: alertData.threshold,
+          description: alertData.description,
+          handled: false,
+        }]);
+
+      if (error) {
+        console.error('Error saving alert to Supabase:', error);
+        return false;
+      }
+      
+      console.log('Alert saved to Supabase:', data);
+      return true;
+    } catch (error) {
+      console.error('Error saving alert:', error);
+      return false;
+    }
+  };
+
   const handleAddRoom = async () => {
     if (!newRoomName.trim()) {
-      Alert.alert('⚠️ Error', 'Please enter a room name', [{ text: 'OK' }]);
+      Alert.alert('Error', 'Please enter a room name', [{ text: 'OK' }]);
       return;
     }
 
     if (!userId) {
-      Alert.alert('⚠️ Error', 'User not authenticated', [{ text: 'OK' }]);
+      Alert.alert('Error', 'User not authenticated', [{ text: 'OK' }]);
       return;
     }
 
@@ -185,22 +213,38 @@ export default function DashboardScreen() {
         .select();
 
       if (error) {
-        Alert.alert('✗ Error', 'Failed to add room: ' + error.message);
+        Alert.alert('Error', 'Failed to add room: ' + error.message);
         return;
       }
 
+      // Save alert to Supabase
+      const alertSaved = await saveAlertToSupabase({
+        type: 'room_added',
+        message: `Room "${newRoomName.trim()}" added successfully`,
+        room_name: newRoomName.trim(),
+        value: '22',
+        threshold: null,
+        description: `New room added with initial temperature of 22°C and humidity at 50%. Start monitoring this room's environmental conditions.`
+      });
+
       setShowAddRoom(false);
+      const roomNameCopy = newRoomName;
       setNewRoomName('');
-      Alert.alert('✓ Success', `Room "${newRoomName}" added!`, [{ text: 'OK' }]);
+      
+      if (alertSaved) {
+        Alert.alert('Success', `Room "${roomNameCopy}" added! Alert has been logged.`, [{ text: 'OK' }]);
+      } else {
+        Alert.alert('Partial Success', `Room "${roomNameCopy}" added but alert logging failed.`, [{ text: 'OK' }]);
+      }
     } catch (error) {
       console.error('Error adding room:', error);
-      Alert.alert('✗ Error', 'Failed to add room');
+      Alert.alert('Error', 'Failed to add room');
     }
   };
 
   const deleteRoom = async (roomId, roomName) => {
     Alert.alert(
-      '🗑️ Delete Room',
+      'Delete Room',
       `Delete "${roomName}" permanently?`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -216,15 +260,30 @@ export default function DashboardScreen() {
                 .eq('user_id', userId);
 
               if (error) {
-                Alert.alert('✗ Error', 'Failed to delete room');
+                Alert.alert('Error', 'Failed to delete room');
                 return;
               }
 
+              // Save delete alert to Supabase
+              const alertSaved = await saveAlertToSupabase({
+                type: 'room_deleted',
+                message: `Room "${roomName}" has been deleted`,
+                room_name: roomName,
+                value: null,
+                threshold: null,
+                description: `Room "${roomName}" was removed from your dashboard.`
+              });
+
               setRoomModalVisible(false);
-              Alert.alert('✓ Deleted', 'Room removed from dashboard', [{ text: 'OK' }]);
+              
+              if (alertSaved) {
+                Alert.alert('Deleted', 'Room removed from dashboard', [{ text: 'OK' }]);
+              } else {
+                Alert.alert('Deleted', 'Room removed but alert logging failed', [{ text: 'OK' }]);
+              }
             } catch (error) {
               console.error('Error deleting room:', error);
-              Alert.alert('✗ Error', 'Failed to delete room');
+              Alert.alert('Error', 'Failed to delete room');
             }
           }
         }
@@ -884,6 +943,6 @@ const styles = StyleSheet.create({
   closeModalText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });
