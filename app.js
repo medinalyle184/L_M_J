@@ -21,6 +21,9 @@ import SignupScreen from './components/SignupScreen';
 import initDatabase from './database/initDatabase.js';
 import { setupNotifications } from './services/notificationService';
 
+// ➕ Supabase import (your file supabase.js)
+import { supabase } from "./supabase";
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
@@ -84,7 +87,22 @@ const App = () => {
         setAppReady(true);
       }
     };
+
     initializeApp();
+
+    // ➕ TEST SUPABASE CONNECTION HERE
+    const testConnection = async () => {
+      const { data, error } = await supabase.from("test").select("*").limit(1);
+
+      if (error) {
+        console.log("❌ Supabase NOT connected:", error.message);
+      } else {
+        console.log("✅ Supabase connected! Data received:", data);
+      }
+    };
+
+    testConnection();
+
   }, []);
 
   const handleLogin = (email) => {
@@ -107,4 +125,3 @@ const App = () => {
 };
 
 export default App;
-
