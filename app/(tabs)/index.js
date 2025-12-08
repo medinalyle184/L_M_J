@@ -1,16 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
-import React, { useEffect, useState, useCallback } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   FlatList,
   RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  ScrollView,
+  View
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -179,12 +178,6 @@ export default function DashboardScreen() {
     );
   };
 
-  const summaryStats = rooms.length > 0 ? {
-    avgTemp: (rooms.reduce((sum, r) => sum + r.temperature, 0) / rooms.length).toFixed(1),
-    avgHumidity: (rooms.reduce((sum, r) => sum + r.humidity, 0) / rooms.length).toFixed(0),
-    alerts: rooms.filter(r => r.status === 'critical').length,
-  } : { avgTemp: 0, avgHumidity: 0, alerts: 0 };
-
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -196,31 +189,13 @@ export default function DashboardScreen() {
         <View style={styles.headerContent}>
           <View>
             <Text style={styles.greeting}>Room Monitor</Text>
-            <Text style={styles.date}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-            </Text>
           </View>
-          <View style={styles.headerIcon}>
-            <Ionicons name="leaf" size={28} color="#10B981" />
-          </View>
-        </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Ionicons name="thermometer" size={20} color="#FF6B6B" />
-            <Text style={styles.statValue}>{summaryStats.avgTemp}°</Text>
-            <Text style={styles.statLabel}>Avg</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="water" size={20} color="#4ECDC4" />
-            <Text style={styles.statValue}>{summaryStats.avgHumidity}%</Text>
-            <Text style={styles.statLabel}>Humidity</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="alert-circle" size={20} color={summaryStats.alerts > 0 ? '#EF4444' : '#10B981'} />
-            <Text style={styles.statValue}>{summaryStats.alerts}</Text>
-            <Text style={styles.statLabel}>Alerts</Text>
-          </View>
+          <TouchableOpacity 
+            onPress={() => router.push('/profile')}
+            style={styles.profileIcon}
+          >
+            <Ionicons name="person-circle" size={40} color="#10B981" />
+          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -250,56 +225,20 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 16,
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
   },
   greeting: {
     fontSize: 28,
     fontWeight: '700',
     color: 'white',
-    marginBottom: 4,
   },
-  date: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  headerIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: 'white',
-    marginTop: 8,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
+  profileIcon: {
+    padding: 4,
   },
   listContent: {
     paddingHorizontal: 16,
