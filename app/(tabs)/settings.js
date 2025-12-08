@@ -11,7 +11,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Modal,
 } from 'react-native';
 
 export default function SettingsScreen() {
@@ -28,28 +27,11 @@ export default function SettingsScreen() {
     crashReports: true,
   });
 
-  const [rooms, setRooms] = useState([]);
-  const [showAddRoom, setShowAddRoom] = useState(false);
-  const [newRoomName, setNewRoomName] = useState('');
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [roomModalVisible, setRoomModalVisible] = useState(false);
-
   useFocusEffect(
     useCallback(() => {
-      loadRooms();
+      // Load settings if needed
     }, [])
   );
-
-  const loadRooms = async () => {
-    try {
-      const result = await window.storage.get('rooms');
-      if (result && result.value) {
-        setRooms(JSON.parse(result.value));
-      }
-    } catch (error) {
-      console.log('Error loading rooms:', error);
-    }
-  };
 
   const saveSettings = () => {
     Alert.alert('✓ Saved', 'All settings have been saved successfully!', [{ text: 'OK' }]);
@@ -82,66 +64,6 @@ export default function SettingsScreen() {
         },
       ]
     );
-  };
-
-  const handleAddRoom = async () => {
-    if (!newRoomName.trim()) {
-      Alert.alert('⚠️ Error', 'Please enter a room name', [{ text: 'OK' }]);
-      return;
-    }
-
-    const newRoom = {
-      id: Math.max(...rooms.map(r => r.id), 0) + 1,
-      name: newRoomName.trim(),
-      temperature: 22,
-      humidity: 50,
-      air_quality: 50,
-      status: 'comfortable',
-      lastUpdated: new Date(),
-    };
-
-    const updatedRooms = [newRoom, ...rooms];
-    setRooms(updatedRooms);
-
-    try {
-      await window.storage.set('rooms', JSON.stringify(updatedRooms));
-      setShowAddRoom(false);
-      setNewRoomName('');
-      Alert.alert('✓ Success', `Room "${newRoom.name}" added!\nIt will appear in your dashboard now.`, [{ text: 'OK' }]);
-    } catch (error) {
-      Alert.alert('❌ Error', 'Failed to save room');
-    }
-  };
-
-  const deleteRoom = async (roomId) => {
-    const room = rooms.find(r => r.id === roomId);
-    Alert.alert(
-      '🗑️ Delete Room',
-      `Delete "${room?.name}" permanently?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const updatedRooms = rooms.filter(r => r.id !== roomId);
-            setRooms(updatedRooms);
-
-            try {
-              await window.storage.set('rooms', JSON.stringify(updatedRooms));
-              Alert.alert('✓ Deleted', 'Room removed from dashboard', [{ text: 'OK' }]);
-            } catch (error) {
-              Alert.alert('❌ Error', 'Failed to delete room');
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const viewRoomDetails = (room) => {
-    setSelectedRoom(room);
-    setRoomModalVisible(true);
   };
 
   const SettingRow = ({ icon, title, description, children }) => (
@@ -183,13 +105,26 @@ export default function SettingsScreen() {
         <SettingRow
           icon="notifications"
           title="Push Notifications"
-          description="Receive alerts"
+          description="Receive alerts on your device"
         >
           <Switch
             value={settings.pushNotifications}
             onValueChange={(value) => setSettings({ ...settings, pushNotifications: value })}
             trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
             thumbColor={settings.pushNotifications ? '#10B981' : '#E5E7EB'}
+          />
+        </SettingRow>
+
+        <SettingRow
+          icon="alert-circle"
+          title="In-App Notifications"
+          description="Show notifications in the app"
+        >
+          <Switch
+            value={settings.inAppNotifications}
+            onValueChange={(value) => setSettings({ ...settings, inAppNotifications: value })}
+            trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
+            thumbColor={settings.inAppNotifications ? '#10B981' : '#E5E7EB'}
           />
         </SettingRow>
 
@@ -205,6 +140,19 @@ export default function SettingsScreen() {
             thumbColor={settings.soundEnabled ? '#10B981' : '#E5E7EB'}
           />
         </SettingRow>
+
+        <SettingRow
+          icon="phone-portrait"
+          title="Vibration"
+          description="Haptic feedback"
+        >
+          <Switch
+            value={settings.vibrationEnabled}
+            onValueChange={(value) => setSettings({ ...settings, vibrationEnabled: value })}
+            trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
+            thumbColor={settings.vibrationEnabled ? '#10B981' : '#E5E7EB'}
+          />
+        </SettingRow>
       </View>
 
       {/* Display Settings */}
@@ -217,7 +165,7 @@ export default function SettingsScreen() {
         <SettingRow
           icon="thermometer"
           title="Temperature Unit"
-          description="Celsius or Fahrenheit"
+          description="Choose Celsius or Fahrenheit"
         >
           <View style={styles.unitSelector}>
             <TouchableOpacity
@@ -240,11 +188,19 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </SettingRow>
+      </View>
+
+      {/* Data Settings */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="time" size={24} color="#10B981" />
+          <Text style={styles.sectionTitle}>Data & Sync</Text>
+        </View>
 
         <SettingRow
           icon="time"
           title="Refresh Interval"
-          description="Data update frequency"
+          description="How often data updates"
         >
           <View style={styles.intervalSelector}>
             <TextInput
@@ -256,81 +212,69 @@ export default function SettingsScreen() {
             <Text style={styles.intervalLabel}>min</Text>
           </View>
         </SettingRow>
+
+        <SettingRow
+          icon="cloud-download"
+          title="Auto Refresh"
+          description="Automatically update data"
+        >
+          <Switch
+            value={settings.autoRefresh}
+            onValueChange={(value) => setSettings({ ...settings, autoRefresh: value })}
+            trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
+            thumbColor={settings.autoRefresh ? '#10B981' : '#E5E7EB'}
+          />
+        </SettingRow>
+
+        <SettingRow
+          icon="archive"
+          title="Data Retention"
+          description="Keep data for X days"
+        >
+          <View style={styles.intervalSelector}>
+            <TextInput
+              style={styles.intervalInput}
+              value={settings.dataRetention.toString()}
+              onChangeText={(text) => setSettings({ ...settings, dataRetention: parseInt(text) || 30 })}
+              keyboardType="numeric"
+            />
+            <Text style={styles.intervalLabel}>days</Text>
+          </View>
+        </SettingRow>
       </View>
 
-      {/* Room Management */}
+      {/* Privacy Settings */}
       <View style={styles.section}>
-        <View style={styles.sectionHeaderWithButton}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="home" size={24} color="#10B981" />
-            <Text style={styles.sectionTitle}>My Rooms ({rooms.length})</Text>
-          </View>
-          <TouchableOpacity onPress={() => setShowAddRoom(!showAddRoom)} style={styles.addButton} activeOpacity={0.8}>
-            <Ionicons name="add-circle" size={28} color="#10B981" />
-          </TouchableOpacity>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="shield" size={24} color="#10B981" />
+          <Text style={styles.sectionTitle}>Privacy & Analytics</Text>
         </View>
 
-        {showAddRoom && (
-          <View style={styles.addRoomContainer}>
-            <Text style={styles.addRoomTitle}>Add New Room</Text>
-            <TextInput
-              style={styles.addRoomInput}
-              placeholder="Enter room name (e.g., Bathroom, Office)"
-              value={newRoomName}
-              onChangeText={setNewRoomName}
-              autoFocus
-              placeholderTextColor="#9CA3AF"
-            />
-            <View style={styles.addRoomButtons}>
-              <TouchableOpacity onPress={() => setShowAddRoom(false)} style={styles.cancelButton} activeOpacity={0.8}>
-                <Ionicons name="close" size={18} color="#6B7280" />
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleAddRoom} style={styles.confirmButton} activeOpacity={0.8}>
-                <Ionicons name="checkmark" size={18} color="white" />
-                <Text style={styles.confirmButtonText}>Add Room</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+        <SettingRow
+          icon="bar-chart"
+          title="Analytics"
+          description="Help improve the app"
+        >
+          <Switch
+            value={settings.analyticsEnabled}
+            onValueChange={(value) => setSettings({ ...settings, analyticsEnabled: value })}
+            trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
+            thumbColor={settings.analyticsEnabled ? '#10B981' : '#E5E7EB'}
+          />
+        </SettingRow>
 
-        {rooms.length === 0 ? (
-          <View style={styles.noRooms}>
-            <Ionicons name="home" size={48} color="#D1D5DB" />
-            <Text style={styles.noRoomsText}>No rooms yet</Text>
-            <Text style={styles.noRoomsSubtext}>Add a room to get started</Text>
-          </View>
-        ) : (
-          rooms.map((room, index) => (
-            <TouchableOpacity 
-              key={room.id} 
-              style={[styles.settingRow, index === rooms.length - 1 && { borderBottomWidth: 0 }]}
-              onPress={() => viewRoomDetails(room)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.settingInfo}>
-                <View style={styles.settingHeader}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#DCFCE7' }]}>
-                    <Ionicons name="home" size={20} color="#10B981" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.settingTitle}>{room.name}</Text>
-                    <Text style={styles.settingDescription}>
-                      🌡️ {room.temperature}°C • 💧 {room.humidity}% • 🌿 Status: {room.status}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <TouchableOpacity 
-                onPress={() => deleteRoom(room.id)}
-                activeOpacity={0.8}
-                style={{ padding: 8 }}
-              >
-                <Ionicons name="trash" size={20} color="#EF4444" />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))
-        )}
+        <SettingRow
+          icon="bug"
+          title="Crash Reports"
+          description="Send error reports"
+        >
+          <Switch
+            value={settings.crashReports}
+            onValueChange={(value) => setSettings({ ...settings, crashReports: value })}
+            trackColor={{ false: '#D1D5DB', true: '#86EFAC' }}
+            thumbColor={settings.crashReports ? '#10B981' : '#E5E7EB'}
+          />
+        </SettingRow>
       </View>
 
       {/* Action Buttons */}
@@ -350,83 +294,6 @@ export default function SettingsScreen() {
         <Text style={styles.version}>v1.0.0</Text>
         <Text style={styles.copyright}>© 2024 Room Monitor</Text>
       </View>
-
-      {/* Room Details Modal */}
-      <Modal
-        visible={roomModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setRoomModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <LinearGradient
-            colors={['#065F46', '#047857']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.modalHeader}
-          >
-            <TouchableOpacity onPress={() => setRoomModalVisible(false)}>
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Room Info</Text>
-            <View style={{ width: 24 }} />
-          </LinearGradient>
-
-          {selectedRoom && (
-            <ScrollView style={styles.modalContent}>
-              <View style={styles.roomCard}>
-                <Text style={styles.roomCardTitle}>{selectedRoom.name}</Text>
-
-                <View style={styles.statGrid}>
-                  <View style={styles.statBox}>
-                    <Ionicons name="thermometer" size={24} color="#FF6B6B" />
-                    <Text style={styles.statLabel}>Temperature</Text>
-                    <Text style={styles.statValue}>{selectedRoom.temperature}°C</Text>
-                  </View>
-
-                  <View style={styles.statBox}>
-                    <Ionicons name="water" size={24} color="#4ECDC4" />
-                    <Text style={styles.statLabel}>Humidity</Text>
-                    <Text style={styles.statValue}>{selectedRoom.humidity}%</Text>
-                  </View>
-
-                  <View style={styles.statBox}>
-                    <Ionicons name="leaf" size={24} color="#10B981" />
-                    <Text style={styles.statLabel}>Air Quality</Text>
-                    <Text style={styles.statValue}>{selectedRoom.air_quality}</Text>
-                  </View>
-
-                  <View style={styles.statBox}>
-                    <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                    <Text style={styles.statLabel}>Status</Text>
-                    <Text style={[styles.statValue, { fontSize: 14, textTransform: 'capitalize' }]}>{selectedRoom.status}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoTitle}>Quick Actions</Text>
-                  <TouchableOpacity style={styles.actionLink} activeOpacity={0.8}>
-                    <Ionicons name="open" size={18} color="#0EA5E9" />
-                    <Text style={styles.actionLinkText}>View Room Details</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionLink} activeOpacity={0.8}>
-                    <Ionicons name="create" size={18} color="#10B981" />
-                    <Text style={styles.actionLinkText}>Edit Thresholds</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.closeModal}
-                  onPress={() => setRoomModalVisible(false)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.closeModalText}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          )}
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
@@ -469,13 +336,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
-  },
-  sectionHeaderWithButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -567,81 +427,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6B7280',
   },
-  addButton: {
-    padding: 8,
-  },
-  addRoomContainer: {
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#F9FAFB',
-  },
-  addRoomTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  addRoomInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  addRoomButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  cancelButtonText: {
-    color: '#6B7280',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  confirmButton: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  confirmButtonText: {
-    color: 'white',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  noRooms: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  noRoomsText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    marginTop: 12,
-  },
-  noRoomsSubtext: {
-    fontSize: 14,
-    color: '#D1D5DB',
-    marginTop: 4,
-  },
   actionSection: {
     paddingHorizontal: 16,
     marginBottom: 16,
@@ -695,97 +480,5 @@ const styles = StyleSheet.create({
   copyright: {
     fontSize: 12,
     color: '#9CA3AF',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#F0FDF4',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingTop: 40,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: 'white',
-  },
-  modalContent: {
-    flex: 1,
-    padding: 16,
-  },
-  roomCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-  },
-  roomCardTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 20,
-  },
-  statGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 20,
-  },
-  statBox: {
-    width: '48%',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
-    marginTop: 6,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginTop: 2,
-  },
-  infoSection: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  actionLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-  },
-  actionLinkText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  closeModal: {
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  closeModalText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
   },
 });
