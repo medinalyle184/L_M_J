@@ -51,6 +51,17 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Room tab with bed icon and "Room" label */}
+      <Tabs.Screen
+        name="room_details"
+        options={{
+          title: 'Room', // Changed from '' to 'Room'
+          headerTitle: 'Room Details',
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="bed" size={size} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="alerts"
         options={{
