@@ -32,6 +32,14 @@ function RootLayoutContent() {
           headerShown: false,
         }}
       />
+      {/* Add admin-specific screens if needed */}
+      <Stack.Screen
+        name="admin-panel"
+        options={{
+          presentation: 'modal',
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
